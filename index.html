@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study of Hash Functions: RSHash</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: #fff;
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .panel h2 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #fdbb2d;
+        }
+
+        .explanation {
+            line-height: 1.7;
+        }
+
+        .explanation p {
+            margin-bottom: 15px;
+        }
+
+        .demo-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        label {
+            font-weight: 600;
+        }
+
+        input, select, textarea {
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            font-size: 1rem;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        button {
+            padding: 12px 20px;
+            background: #fdbb2d;
+            color: #1a2a6c;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        button:hover {
+            background: #ffcc44;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: monospace;
+            font-size: 1.1rem;
+            word-break: break-all;
+        }
+
+        .animation-container {
+            height: 200px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            margin-top: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .data-block {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            transition: all 0.5s ease;
+        }
+
+        .hash-visualization {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .hash-byte {
+            width: 40px;
+            height: 40px;
+            background: rgba(253, 187, 45, 0.7);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .comparison {
+            grid-column: 1 / -1;
+            margin-top: 30px;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .comparison-table th, .comparison-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .comparison-table th {
+            background: rgba(253, 187, 45, 0.3);
+        }
+
+        .comparison-table tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .highlight {
+            color: #fdbb2d;
+            font-weight: 600;
+        }
+
+        .data-type {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .data-type-btn {
+            padding: 8px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .data-type-btn.active {
+            background: #fdbb2d;
+            color: #1a2a6c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Study of Hash Functions</h1>
+            <p class="subtitle">Understanding RSHash and its application to different data types</p>
+        </header>
+
+        <div class="content">
+            <div class="panel">
+                <h2>What is RSHash?</h2>
+                <div class="explanation">
+                    <p>RSHash is a simple non-cryptographic hash function created by Robert Sedgwicks. It's designed for use in hash tables and provides a good distribution of hash values.</p>
+                    <p>The algorithm processes each character in the input string, using bitwise operations to combine them into a final hash value.</p>
+                    <p>While not suitable for cryptographic purposes, RSHash is efficient for general hashing needs and demonstrates the fundamental principles of hash functions.</p>
+                    <p>In this vlog, we'll explore how RSHash processes different types of data commonly found in internet technology.</p>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>RSHash Algorithm</h2>
+                <div class="explanation">
+                    <p>The RSHash algorithm can be expressed with the following formula:</p>
+                    <p style="text-align: center; margin: 15px 0; font-family: monospace;">
+                        hash = (hash * a + char) % b
+                    </p>
+                    <p>Where:</p>
+                    <ul style="padding-left: 20px; margin-bottom: 15px;">
+                        <li><span class="highlight">a</span> and <span class="highlight">b</span> are carefully chosen constants</li>
+                        <li><span class="highlight">char</span> is the current character being processed</li>
+                        <li><span class="highlight">hash</span> is initialized to 0</li>
+                    </ul>
+                    <p>The algorithm processes each character in sequence, updating the hash value with each iteration.</p>
+                </div>
+            </div>
+
+            <div class="panel demo-container">
+                <h2>Interactive Demo</h2>
+                
+                <div class="data-type">
+                    <div class="data-type-btn active" data-type="text">Text</div>
+                    <div class="data-type-btn" data-type="number">Numbers</div>
+                    <div class="data-type-btn" data-type="binary">Binary</div>
+                    <div class="data-type-btn" data-type="json">JSON</div>
+                </div>
+                
+                <div class="input-group">
+                    <label for="inputData">Input Data:</label>
+                    <textarea id="inputData" placeholder="Enter data to hash...">Hello, Hash World!</textarea>
+                </div>
+                
+                <button id="hashButton">Generate RSHash</button>
+                
+                <div class="result" id="hashResult">
+                    Hash will appear here
+                </div>
+                
+                <div class="animation-container" id="animationContainer">
+                    <!-- Animation will be generated here -->
+                </div>
+                
+                <div class="hash-visualization" id="hashVisualization">
+                    <!-- Hash bytes visualization -->
+                </div>
+            </div>
+
+            <div class="panel comparison">
+                <h2>Data Type Comparison</h2>
+                <p>See how RSHash behaves with different types of data commonly transmitted over the internet:</p>
+                
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Data Type</th>
+                            <th>Example</th>
+                            <th>RSHash Value</th>
+                            <th>Characteristics</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Plain Text</td>
+                            <td>"Hello World"</td>
+                            <td id="textHash">-</td>
+                            <td>Consistent, good distribution</td>
+                        </tr>
+                        <tr>
+                            <td>Numeric Data</td>
+                            <td>1234567890</td>
+                            <td id="numberHash">-</td>
+                            <td>Efficient for sequential numbers</td>
+                        </tr>
+                        <tr>
+                            <td>Binary Data</td>
+                            <td>01010101 11001100</td>
+                            <td id="binaryHash">-</td>
+                            <td>Treats as character sequence</td>
+                        </tr>
+                        <tr>
+                            <td>JSON</td>
+                            <td>{"key": "value"}</td>
+                            <td id="jsonHash">-</td>
+                            <td>Structure affects hash value</td>
+                        </tr>
+                        <tr>
+                            <td>URL</td>
+                            <td>https://example.com</td>
+                            <td id="urlHash">-</td>
+                            <td>Domain-specific patterns</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <footer>
+            <p>Vlog on Hash Functions | Study of RSHash Algorithm | Internet Technology Data Flow</p>
+        </footer>
+    </div>
+
+    <script>
+        // RSHash implementation
+        function RSHash(str) {
+            let a = 63689;
+            const b = 378551;
+            let hash = 0;
+            
+            for (let i = 0; i < str.length; i++) {
+                hash = (hash * a + str.charCodeAt(i)) >>> 0;
+                a = (a * b) >>> 0;
+            }
+            
+            return hash;
+        }
+
+        // Format hash as hexadecimal
+        function toHexString(hash) {
+            return '0x' + hash.toString(16).toUpperCase().padStart(8, '0');
+        }
+
+        // Animation function
+        function animateHashing(input, hashValue) {
+            const container = document.getElementById('animationContainer');
+            container.innerHTML = '';
+            
+            const hashVisualization = document.getElementById('hashVisualization');
+            hashVisualization.innerHTML = '';
+            
+            // Create data blocks for each character
+            const blocks = [];
+            for (let i = 0; i < input.length; i++) {
+                const block = document.createElement('div');
+                block.className = 'data-block';
+                block.textContent = input[i];
+                block.style.backgroundColor = hsl(${i * 30}, 70%, 60%);
+                block.style.left = ${(i * 50) + 20}px;
+                block.style.top = '80px';
+                container.appendChild(block);
+                blocks.push(block);
+            }
+            
+            // Create hash bytes visualization
+            const hexString = toHexString(hashValue).substring(2);
+            for (let i = 0; i < 8; i++) {
+                const byte = document.createElement('div');
+                byte.className = 'hash-byte';
+                byte.textContent = hexString.substring(i*2, i*2+2);
+                byte.style.opacity = '0';
+                hashVisualization.appendChild(byte);
+            }
+            
+            // Animate the process
+            let currentHash = 0;
+            let a = 63689;
+            const b = 378551;
+            
+            function processNextChar(index) {
+                if (index >= input.length) {
+                    // Final animation - show all hash bytes
+                    const bytes = document.querySelectorAll('.hash-byte');
+                    bytes.forEach((byte, i) => {
+                        setTimeout(() => {
+                            byte.style.opacity = '1';
+                            byte.style.transform = 'scale(1.2)';
+                            setTimeout(() => {
+                                byte.style.transform = 'scale(1)';
+                            }, 300);
+                        }, i * 200);
+                    });
+                    return;
+                }
+                
+                // Move current block to processing position
+                const block = blocks[index];
+                block.style.top = '20px';
+                block.style.transform = 'scale(1.3)';
+                
+                // Calculate hash step
+                setTimeout(() => {
+                    currentHash = (currentHash * a + input.charCodeAt(index)) >>> 0;
+                    a = (a * b) >>> 0;
+                    
+                    // Update visualization with current hash
+                    const tempHex = toHexString(currentHash).substring(2);
+                    const bytes = document.querySelectorAll('.hash-byte');
+                    bytes.forEach((byte, i) => {
+                        byte.textContent = tempHex.substring(i*2, i*2+2);
+                        if (i <= index % 8) {
+                            byte.style.opacity = '0.7';
+                        }
+                    });
+                    
+                    // Move block to done position
+                    block.style.top = '140px';
+                    block.style.transform = 'scale(0.7)';
+                    block.style.opacity = '0.5';
+                    
+                    // Process next character
+                    setTimeout(() => processNextChar(index + 1), 500);
+                }, 600);
+            }
+            
+            // Start animation
+            processNextChar(0);
+        }
+
+        // Populate comparison table
+        function populateComparisonTable() {
+            const examples = {
+                text: "Hello World",
+                number: "1234567890",
+                binary: "0101010111001100",
+                json: '{"key": "value"}',
+                url: "https://example.com"
+            };
+            
+            document.getElementById('textHash').textContent = toHexString(RSHash(examples.text));
+            document.getElementById('numberHash').textContent = toHexString(RSHash(examples.number));
+            document.getElementById('binaryHash').textContent = toHexString(RSHash(examples.binary));
+            document.getElementById('jsonHash').textContent = toHexString(RSHash(examples.json));
+            document.getElementById('urlHash').textContent = toHexString(RSHash(examples.url));
+        }
+
+        // Event listeners
+        document.getElementById('hashButton').addEventListener('click', function() {
+            const input = document.getElementById('inputData').value;
+            const hashValue = RSHash(input);
+            document.getElementById('hashResult').textContent = RSHash: ${toHexString(hashValue)};
+            animateHashing(input, hashValue);
+        });
+
+        // Data type buttons
+        const dataTypeButtons = document.querySelectorAll('.data-type-btn');
+        dataTypeButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                // Remove active class from all buttons
+                dataTypeButtons.forEach(btn => btn.classList.remove('active'));
+                // Add active class to clicked button
+                this.classList.add('active');
+                
+                // Update input based on data type
+                const dataType = this.getAttribute('data-type');
+                const inputField = document.getElementById('inputData');
+                
+                switch(dataType) {
+                    case 'text':
+                        inputField.value = "Hello, Hash World!";
+                        break;
+                    case 'number':
+                        inputField.value = "1234567890";
+                        break;
+                    case 'binary':
+                        inputField.value = "0101010111001100";
+                        break;
+                    case 'json':
+                        inputField.value = '{"name": "RSHash", "type": "hash_function", "efficiency": "high"}';
+                        break;
+                }
+            });
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            populateComparisonTable();
+            
+            // Generate initial hash
+            const initialInput = document.getElementById('inputData').value;
+            const initialHash = RSHash(initialInput);
+            document.getElementById('hashResult').textContent = RSHash: ${toHexString(initialHash)};
+            animateHashing(initialInput, initialHash);
+        });
+    </script>
+</body>
+</html>
